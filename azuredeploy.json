@@ -1,46 +1,57 @@
 {
     "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
     "contentVersion": "1.0.0.0",
-    "parameters": {},
-    "variables": {},
+    "parameters": {
+      "sqlServer": {
+         "type": "string",
+         "metadata": {
+              "description": "Enter a name for the logical SQL Server"
+          }
+      },
+      "adminUserName": {
+         "type": "string",
+         "metadata": {
+              "description": "Enter a username for the logical SQL Server"
+          }
+      },
+      "adminPassword": {
+         "type": "securestring",
+         "metadata": {
+              "description": "Enter a password for your admin username"
+          }
+      }
+    },
+    "variables": {
+      "sqlServer": "[parameters('sqlServer')]"
+    },
     "resources": [
       {
-          "name": "WebServerNSG",
-          "type": "Microsoft.Network/networkSecurityGroups",
-          "apiVersion": "2018-08-01",
+          "name": "[variables('sqlServer')]",
+          "type": "Microsoft.Sql/servers",
+          "apiVersion": "2015-05-01-preview",
           "location": "[resourceGroup().location]",
+          "tags": {
+              "displayName": "[variables('sqlServer')]"
+          },
           "properties": {
-              "securityRules": [
-                  {
-                      "name": "RDP",
-                      "properties": {
-                          "description": "description",
-                          "protocol": "Tcp",
-                          "sourcePortRange": "*",
-                          "destinationPortRange": "3389",
-                          "sourceAddressPrefix": "4.2.2.3/32",
-                          "destinationAddressPrefix": "*",
-                          "access": "Allow",
-                          "priority": 100,
-                          "direction": "Inbound"
-                      }
-                  },
-                  {
-                      "name": "Http",
-                      "properties": {
-                          "description": "description",
-                          "protocol": "Tcp",
-                          "sourcePortRange": "*",
-                          "destinationPortRange": "80",
-                          "sourceAddressPrefix": "*",
-                          "destinationAddressPrefix": "*",
-                          "access": "Allow",
-                          "priority": 101,
-                          "direction": "Inbound"
-                      }
-                  }                  
-              ]
-          }
+              "administratorLogin": "[parameters('adminUserName')]",
+              "administratorLoginPassword": "[parameters('adminPassword')]"
+          },
+          "resources": [
+              {
+                  "type": "firewallRules",
+                  "apiVersion": "2015-05-01-preview",
+                  "dependsOn": [
+                      "[resourceId('Microsoft.Sql/servers', variables('sqlServer'))]"
+                  ],
+                  "location": "[resourceGroup().location]",
+                  "name": "AllowAllWindowsAzureIps",
+                  "properties": {
+                      "startIpAddress": "0.0.0.0",
+                      "endIpAddress": "0.0.0.0"
+                  }
+              }
+          ]
       }
     ],
     "outputs": {},
